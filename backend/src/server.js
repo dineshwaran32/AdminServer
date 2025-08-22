@@ -33,6 +33,14 @@ const ideaRoutes = require('./routes/ideas');
 const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
 
+// Import admin routes
+const adminAuthRoutes = require('./routes/adminAuth');
+const adminUserRoutes = require('./routes/adminUsers');
+const adminIdeaRoutes = require('./routes/adminIdeas');
+const adminNotificationRoutes = require('./routes/adminNotifications');
+const adminEmployeeRoutes = require('./routes/adminEmployees');
+const adminReviewerRoutes = require('./routes/adminReviewers');
+
 const app = express();
 
 // Connect to MongoDB
@@ -72,7 +80,7 @@ const corsOptions = {
   origin: true, // reflect origin for dev, allows LAN access
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Debug-Request', 'Accept', 'X-Requested-With', 'cache-control'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Debug-Request', 'Accept', 'X-Requested-With', 'cache-control', 'Origin'],
   optionsSuccessStatus: 200
 };
 
@@ -125,6 +133,14 @@ app.use('/app/api/auth', authRoutes);
 app.use('/app/api/ideas', ideaRoutes);
 app.use('/app/api/users', userRoutes);
 app.use('/app/api/notifications', notificationRoutes);
+
+// Admin API routes
+app.use('/api/admin/auth', adminAuthRoutes);
+app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/admin/ideas', adminIdeaRoutes);
+app.use('/api/admin/notifications', adminNotificationRoutes);
+app.use('/api/admin/employees', adminEmployeeRoutes);
+app.use('/api/admin/reviewers', adminReviewerRoutes);
 
 // ===================== Frontend Static Files =====================
 // Build the React/Vite app first (npm run build in SakthiAdmin) which outputs the dist folder.

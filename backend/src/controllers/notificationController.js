@@ -104,6 +104,100 @@ async function markAllAsRead(req, res) {
   }
 }
 
+// Admin-specific notification methods
+async function getAdminNotifications(req, res) {
+  try {
+    const { page = 1, limit = 50, isRead } = req.query;
+    
+    const filter = {};
+    if (isRead !== undefined) filter.isRead = isRead === 'true';
+
+    const notifications = await Notification.find(filter)
+      .populate('relatedIdea', 'title status department')
+      .populate('recipient', 'name role employeeNumber')
+      .populate('sender', 'name role employeeNumber')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .lean();
+
+    const total = await Notification.countDocuments(filter);
+    const unreadCount = await Notification.countDocuments({ isRead: false });
+
+    res.json({
+      success: true,
+      data: {
+        notifications,
+        unreadCount,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get admin notifications error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching admin notifications'
+    });
+  }
+}
+
+async function markNotificationAsRead(req, res) {
+  try {
+    const notification = await Notification.findByIdAndUpdate(
+      req.params.id,
+      { isRead: true, readAt: new Date() },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Notification marked as read',
+      data: { notification }
+    });
+
+  } catch (error) {
+    console.error('Mark notification as read error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating notification'
+    });
+  }
+}
+
+async function markAllNotificationsAsRead(req, res) {
+  try {
+    await Notification.updateMany(
+      { isRead: false },
+      { isRead: true, readAt: new Date() }
+    );
+
+    res.json({
+      success: true,
+      message: 'All notifications marked as read'
+    });
+
+  } catch (error) {
+    console.error('Mark all notifications as read error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating notifications'
+    });
+  }
+}
+
 // @desc    Send a Twilio SMS message
 // @route   POST /api/notifications/twilio-message
 // @access  Private
@@ -124,5 +218,8 @@ module.exports = {
   getNotifications,
   markAsRead,
   markAllAsRead,
-  sendTwilioMessage
+  sendTwilioMessage,
+  getAdminNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead
 };

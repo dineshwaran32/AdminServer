@@ -406,6 +406,85 @@ const getIdeaStats = async (req, res) => {
   }
 };
 
+const getIdeasStats = async (req, res) => {
+  try {
+    // Get total ideas count
+    const totalIdeas = await Idea.countDocuments({ isActive: { $ne: false } });
+    
+    // Get ideas by status
+    const statusStats = await Idea.aggregate([
+      { $match: { isActive: { $ne: false } } },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+          totalSavings: { $sum: { $ifNull: ["$estimatedSavings", 0] } },
+        },
+      },
+    ]);
+
+    // Get ideas by department
+    const departmentStats = await Idea.aggregate([
+      { $match: { isActive: { $ne: false } } },
+      {
+        $group: {
+          _id: "$department",
+          count: { $sum: 1 },
+          totalSavings: { $sum: { $ifNull: ["$estimatedSavings", 0] } },
+        },
+      },
+    ]);
+
+    // Get ideas by benefit type
+    const benefitStats = await Idea.aggregate([
+      { $match: { isActive: { $ne: false } } },
+      {
+        $group: {
+          _id: "$benefit",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Get recent ideas (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentIdeas = await Idea.countDocuments({
+      createdAt: { $gte: thirtyDaysAgo },
+      isActive: { $ne: false }
+    });
+
+    // Get total estimated savings
+    const totalSavings = await Idea.aggregate([
+      { $match: { isActive: { $ne: false } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $ifNull: ["$estimatedSavings", 0] } },
+        },
+      },
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        totalIdeas,
+        statusStats,
+        departmentStats,
+        benefitStats,
+        recentIdeas,
+        totalSavings: totalSavings[0]?.total || 0,
+      },
+    });
+  } catch (error) {
+    console.error("Get ideas stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching dashboard statistics",
+    });
+  }
+};
+
 const updateIdea = async (req, res) => {
   try {
     const allowedFields = [
@@ -494,6 +573,7 @@ module.exports = {
   getIdeaById,
   updateIdeaStatus,
   getIdeaStats,
+  getIdeasStats,
   updateIdea,
   deleteIdea,
 };
